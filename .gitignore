@@ -1,0 +1,25 @@
+# Build output
+target/
+build/
+bin/
+dependency-reduced-pom.xml
+
+# Gradle
+.gradle/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# IDE / Editor
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Logs
+*.log
+logs/

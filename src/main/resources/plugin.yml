@@ -1,0 +1,19 @@
+name: Astanix-AX
+version: '${project.version}'
+main: dev.astanix.axray.AstanixAXPlugin
+api-version: '1.21'
+author: Astanix Development
+description: Advanced Administrative Anti-Xray Inspection & Ore Clustering Plugin
+website: https://astanix.dev
+
+commands:
+  astanixax:
+    description: Main administrative anti-xray inspection command
+    aliases: [ax, axray]
+    permission: astanix.axray.admin
+    usage: /<command> [player|clear|reload]
+
+permissions:
+  astanix.axray.admin:
+    description: Allows access to Astanix-AX inspection GUIs, highlighting, and commands
+    default: op

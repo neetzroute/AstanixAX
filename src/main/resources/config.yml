@@ -1,0 +1,57 @@
+# ==============================================================================
+#                      Astanix-AX - Configuration File
+#              Production-grade Anti-Xray Administrative Inspection
+# ==============================================================================
+
+# Database configuration (Local SQLite is recommended for low latency and zero maintenance)
+database:
+  file: "axray_data.db"
+  maximum-pool-size: 10
+  minimum-idle: 2
+  idle-timeout-ms: 300000
+  connection-timeout-ms: 10000
+
+# Ore tracking settings
+tracker:
+  # Ignore mining in creative or spectator mode
+  ignore-creative: true
+  
+  # Ignore blocks broken with silk touch? (Set to false so all valuable mining is tracked)
+  ignore-silk-touch: false
+
+  # Worlds where ore mining is monitored
+  # Leave empty [] to monitor all worlds
+  monitored-worlds: []
+
+  # Clustering settings:
+  # Blocks broken within this radius (in blocks) are merged into the same cluster.
+  cluster-radius: 3.5
+
+  # Max time window (in minutes) to group consecutive ore breaks into the same cluster session.
+  cluster-time-window-minutes: 15
+
+# Admin inspection & highlight settings
+inspection:
+  # The block material sent via packets to highlight ore clusters for the admin.
+  highlight-material: "GOLD_BLOCK"
+
+  # Switch admin to spectator mode on teleport for safe viewing through cave walls
+  spectator-on-teleport: true
+
+  # Auto-save admin previous location & gamemode to restore when exiting inspection
+  save-previous-state: true
+
+  # Highlight lifetime in minutes before auto-clearing (0 = disabled, until manual clear/disconnect)
+  auto-clear-minutes: 30
+
+# Messages (MiniMessage format supported: <gradient>, <color>, <bold>, <click>, <hover>)
+messages:
+  prefix: "<gradient:#00D2FF:#3A7BD5><bold>[Astanix-AX]</bold></gradient> "
+  no-permission: "<red>У вас нет прав для выполнения этой команды!</red>"
+  teleported-to-cluster: "<green>Телепортация к кладке <white>#{id}</white> игрока <yellow>{player}</yellow>. Блоки подсвечены золотом!</green>"
+  teleport-hint: "<gray>Для сброса подсветки введите <click:run_command:'/ax clear'><yellow><u>/ax clear</u></yellow></click> или нажмите кнопку в GUI.</gray>"
+  highlight-cleared: "<gray>Подсветка блоков успешно снята, оригинальный вид восстановлен.</gray>"
+  cluster-clean-marked: "<green>Кладка <white>#{id}</white> помечена как <bold>ЧИСТАЯ</bold> ✔</green>"
+  cluster-unclean-marked: "<yellow>С кладки <white>#{id}</white> снята отметка чистоты ⚠</yellow>"
+  player-not-found: "<red>Игрок не найден или не имеет записей о добыче.</red>"
+  config-reloaded: "<green>Конфигурация успешно перезагружена!</green>"
