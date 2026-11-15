@@ -149,12 +149,14 @@ public class OreRepository {
                 SELECT 
                     player_uuid,
                     player_name,
-                    SUM(CASE WHEN ore_type = 'DIAMOND' THEN 1 ELSE 0 END) AS diamond_count,
-                    SUM(CASE WHEN ore_type = 'DEBRIS' THEN 1 ELSE 0 END) AS debris_count,
-                    SUM(CASE WHEN ore_type = 'EMERALD' THEN 1 ELSE 0 END) AS emerald_count,
-                    COUNT(*) AS total_count,
-                    MAX(mined_at) AS last_mined
-                FROM ore_blocks
+                    SUM(CASE WHEN ore_type = 'DIAMOND' THEN block_count ELSE 0 END) AS diamond_count,
+                    SUM(CASE WHEN ore_type = 'DEBRIS' THEN block_count ELSE 0 END) AS debris_count,
+                    SUM(CASE WHEN ore_type = 'EMERALD' THEN block_count ELSE 0 END) AS emerald_count,
+                    SUM(block_count) AS total_count,
+                    COUNT(*) AS total_clusters,
+                    SUM(CASE WHEN is_clean = 0 THEN 1 ELSE 0 END) AS unreviewed_clusters,
+                    MAX(updated_at) AS last_mined
+                FROM clusters
                 GROUP BY player_uuid, player_name
                 ORDER BY total_count DESC
                 LIMIT ? OFFSET ?;
@@ -174,22 +176,10 @@ public class OreRepository {
                         int debris = rs.getInt("debris_count");
                         int emeralds = rs.getInt("emerald_count");
                         int total = rs.getInt("total_count");
+                        int totalClusters = rs.getInt("total_clusters");
+                        int unreviewedClusters = rs.getInt("unreviewed_clusters");
                         Timestamp ts = rs.getTimestamp("last_mined");
                         Instant lastMined = ts != null ? ts.toInstant() : Instant.EPOCH;
-
-                        int totalClusters = 0;
-                        int unreviewedClusters = 0;
-                        // Query clusters summary for player
-                        String countSql = "SELECT COUNT(*) AS total_c, SUM(CASE WHEN is_clean = 0 THEN 1 ELSE 0 END) AS unrev_c FROM clusters WHERE player_uuid = ?";
-                        try (PreparedStatement cStmt = conn.prepareStatement(countSql)) {
-                            cStmt.setString(1, uuid.toString());
-                            try (ResultSet cRs = cStmt.executeQuery()) {
-                                if (cRs.next()) {
-                                    totalClusters = cRs.getInt("total_c");
-                                    unreviewedClusters = cRs.getInt("unrev_c");
-                                }
-                            }
-                        }
 
                         list.add(new PlayerOreStats(uuid, name, diamonds, debris, emeralds, total, totalClusters, unreviewedClusters, lastMined));
                     }
