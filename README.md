@@ -35,28 +35,7 @@
 
 ---
 
-## 🏗️ Архитектура проекта
-
-```mermaid
-flowchart TD
-    Player["Игрок добывает руду"] --> Listener["OreBreakListener"]
-    Listener --> Tracker["OreTrackerService<br>Spatial Clustering"]
-    
-    subgraph Storage["Асинхронное хранилище"]
-        Tracker -->|Async Write| Hikari["HikariCP + SQLite WAL"]
-        Hikari --> DB[("axray_data.db")]
-    end
-    
-    subgraph Admin["Инструменты администратора"]
-        Cmd["Команды /ax и /astanixax"] --> GUI["PlayerListGui & ClusterListGui"]
-        GUI -->|Fetch Top & Clusters| Hikari
-        GUI -->|Инспекция кладки| Highlight["HighlightService"]
-        Highlight -->|Packet Block Change| AdminClient["Клиент администратора<br>Блоки = GOLD_BLOCK"]
-        Highlight -.->|Мир сервера не изменен| ServerWorld["Игровой мир"]
-    end
-```
-
-### Модули и пакеты (`dev.astanix.axray`):
+## 📂 Структура модулей (`dev.astanix.axray`)
 - `command` — обработчик административных команд `/ax` и автодополнение аргументов.
 - `config` — загрузка настроек и сообщений плагина из `config.yml`.
 - `gui` — модульная система инвентарей на базе `InventoryHolder` с защитой от перемещения предметов.
