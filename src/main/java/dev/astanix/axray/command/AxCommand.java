@@ -70,8 +70,23 @@ public class AxCommand implements CommandExecutor, TabCompleter {
                 try {
                     long clusterId = Long.parseLong(args[1]);
                     plugin.getRepository().setClusterClean(clusterId, true).thenRun(() -> {
-                        sender.sendMessage(TextUtil.parse(plugin.getConfigManager().getPrefix() + plugin.getConfigManager().getClusterCleanMarked(),
-                                Map.of("id", String.valueOf(clusterId))));
+                        if (sender instanceof Player player) {
+                            player.getScheduler().run(plugin, task -> {
+                                boolean hadSession = plugin.getHighlightService().hasActiveSession(player.getUniqueId());
+                                if (hadSession) {
+                                    plugin.getHighlightService().clearHighlight(player, false);
+                                    player.sendMessage(TextUtil.parse(plugin.getConfigManager().getPrefix() +
+                                            "<green>Кладка <white>#" + clusterId + "</white> помечена как <bold>ЧИСТАЯ</bold> ✔ Вы возвращены на исходную позицию!</green>"));
+                                    player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.2f);
+                                } else {
+                                    player.sendMessage(TextUtil.parse(plugin.getConfigManager().getPrefix() + plugin.getConfigManager().getClusterCleanMarked(),
+                                            Map.of("id", String.valueOf(clusterId))));
+                                }
+                            }, null);
+                        } else {
+                            sender.sendMessage(TextUtil.parse(plugin.getConfigManager().getPrefix() + plugin.getConfigManager().getClusterCleanMarked(),
+                                    Map.of("id", String.valueOf(clusterId))));
+                        }
                     });
                 } catch (NumberFormatException e) {
                     sender.sendMessage(TextUtil.parse(plugin.getConfigManager().getPrefix() + "<red>Неверный формат ID кладки!</red>"));

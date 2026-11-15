@@ -4,7 +4,7 @@ main: dev.astanix.axray.AstanixAXPlugin
 api-version: '1.21'
 author: Astanix Development
 description: Advanced Administrative Anti-Xray Inspection & Ore Clustering Plugin
-website: https://astanix.dev
+website: https://github.com/NeetzRoute
 
 commands:
   astanixax:

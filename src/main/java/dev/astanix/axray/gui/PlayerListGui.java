@@ -73,16 +73,16 @@ public class PlayerListGui extends AbstractGui {
         // Clear highlight button if session active
         if (plugin.getHighlightService().hasActiveSession(player.getUniqueId())) {
             ItemStack clear = ItemBuilder.from(Material.REDSTONE_BLOCK)
-                    .name("<red><bold>✖ Сбросить подсветку блоков</bold></red>")
+                    .name("<red><bold>✖ Выйти из режима инспекции</bold></red>")
                     .lore(
-                            "<gray>У вас активна подсветка кладки.</gray>",
-                            "<yellow>Кликните, чтобы восстановить исходный вид блоков.</yellow>"
+                            "<gray>У вас активна подсветка кладки в спектаторе.</gray>",
+                            "<yellow>Кликните, чтобы сбросить подсветку и вернуться на исходное место.</yellow>"
                     )
                     .glow(true)
                     .build();
             setItem(50, clear, e -> {
+                player.closeInventory();
                 plugin.getHighlightService().clearHighlight(player, true);
-                setupBottomBar();
             });
         }
 

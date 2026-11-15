@@ -266,6 +266,19 @@ public class ClusterListGui extends AbstractGui {
 
                 plugin.getRepository().setClusterClean(cluster.getId(), newClean).thenRun(() -> {
                     player.getScheduler().run(plugin, task -> {
+                        // If player is currently inspecting this cluster in spectator and marks it clean:
+                        if (newClean && plugin.getHighlightService().hasActiveSession(player.getUniqueId())) {
+                            var session = plugin.getHighlightService().getSession(player.getUniqueId());
+                            if (session != null && session.clusterId() == cluster.getId()) {
+                                player.closeInventory();
+                                plugin.getHighlightService().clearHighlight(player, false);
+                                player.sendMessage(TextUtil.parse(plugin.getConfigManager().getPrefix() +
+                                        "<green>Кладка <white>#" + cluster.getId() + "</white> помечена как <bold>ЧИСТАЯ</bold> ✔ Вы возвращены на исходную позицию!</green>"));
+                                player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.2f);
+                                return;
+                            }
+                        }
+
                         renderClusterItem(slot, cluster);
                         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.8f, newClean ? 1.4f : 0.8f);
 

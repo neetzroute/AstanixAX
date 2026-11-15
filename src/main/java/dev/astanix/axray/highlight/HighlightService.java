@@ -11,18 +11,25 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Shulker;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class HighlightService implements Listener {
+    private static final String TEAM_NAME = "ax_glow_yellow";
     private final Plugin plugin;
     private final PluginConfig config;
     private final Map<UUID, InspectionSession> activeSessions = new ConcurrentHashMap<>();
@@ -34,12 +41,24 @@ public class HighlightService implements Listener {
             Location previousLocation,
             GameMode previousGameMode,
             Set<Location> highlightedLocations,
+            List<Entity> glowingEntities,
             Instant startTime
     ) {}
 
     public HighlightService(Plugin plugin, PluginConfig config) {
         this.plugin = plugin;
         this.config = config;
+        getOrCreateYellowTeam();
+    }
+
+    private Team getOrCreateYellowTeam() {
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+        Team team = scoreboard.getTeam(TEAM_NAME);
+        if (team == null) {
+            team = scoreboard.registerNewTeam(TEAM_NAME);
+        }
+        team.color(NamedTextColor.YELLOW);
+        return team;
     }
 
     public void startInspection(Player admin, OreCluster cluster, List<OreBlock> blocks) {
@@ -72,13 +91,39 @@ public class HighlightService implements Listener {
 
             BlockData fakeBlockData = Bukkit.createBlockData(config.getHighlightMaterial());
             Set<Location> highlightedLocs = new HashSet<>();
+            List<Entity> glowingEntities = new ArrayList<>();
+            Team yellowTeam = getOrCreateYellowTeam();
 
-            // Send packet block updates exclusively to this admin
+            // Send packet block updates and spawn client-only yellow glowing bounding boxes
             for (OreBlock oreBlock : blocks) {
                 Location loc = oreBlock.toLocation();
-                if (loc != null) {
+                if (loc != null && loc.getWorld() != null) {
                     highlightedLocs.add(loc);
+
+                    // Client-side block appearance (GOLD_BLOCK)
                     admin.sendBlockChange(loc, fakeBlockData);
+
+                    // Client-only glowing box visible through walls
+                    Location entityLoc = loc.clone().add(0.5, 0.0, 0.5);
+                    try {
+                        Shulker box = loc.getWorld().spawn(entityLoc, Shulker.class, s -> {
+                            s.setVisibleByDefault(false);
+                            s.setInvisible(true);
+                            s.setGlowing(true);
+                            s.setAI(false);
+                            s.setInvulnerable(true);
+                            s.setSilent(true);
+                            s.setPersistent(false);
+                            s.setCollidable(false);
+                            s.setPeek(0.0f);
+                            s.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, PotionEffect.INFINITE_DURATION, 1, false, false, false));
+                        });
+
+                        yellowTeam.addEntity(box);
+                        admin.showEntity(plugin, box);
+                        glowingEntities.add(box);
+                    } catch (Exception ignored) {
+                    }
                 }
             }
 
@@ -89,6 +134,7 @@ public class HighlightService implements Listener {
                     prevLoc,
                     prevMode,
                     highlightedLocs,
+                    glowingEntities,
                     Instant.now()
             );
             activeSessions.put(admin.getUniqueId(), session);
@@ -106,19 +152,19 @@ public class HighlightService implements Listener {
                             .color(NamedTextColor.GREEN)
                             .decorate(TextDecoration.BOLD)
                             .clickEvent(ClickEvent.runCommand("/ax markclean " + cluster.getId()))
-                            .hoverEvent(HoverEvent.showText(Component.text("Нажмите, чтобы отметить кладку проверенной"))))
+                            .hoverEvent(HoverEvent.showText(Component.text("Пометить чистой, выйти из спектатора и вернуться на исходное место"))))
                     .append(Component.text("  "))
-                    .append(Component.text("[✖ Сбросить подсветку]")
+                    .append(Component.text("[✖ Выйти из инспекции]")
                             .color(NamedTextColor.RED)
                             .decorate(TextDecoration.BOLD)
                             .clickEvent(ClickEvent.runCommand("/ax clear"))
-                            .hoverEvent(HoverEvent.showText(Component.text("Нажмите, чтобы сбросить подсветку и вернуть вид"))))
+                            .hoverEvent(HoverEvent.showText(Component.text("Сбросить подсветку, выйти из спектатора и вернуться назад"))))
                     .append(Component.text("  "))
-                    .append(Component.text("[☰ Кладка игрока]")
+                    .append(Component.text("[☰ Меню игрока]")
                             .color(NamedTextColor.AQUA)
                             .decorate(TextDecoration.BOLD)
                             .clickEvent(ClickEvent.runCommand("/ax inspect " + cluster.getPlayerName()))
-                            .hoverEvent(HoverEvent.showText(Component.text("Нажмите, чтобы открыть меню кладок этого игрока"))));
+                            .hoverEvent(HoverEvent.showText(Component.text("Открыть меню всех кладок этого игрока"))));
 
             admin.sendMessage(controlBar);
             admin.playSound(admin.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.2f);
@@ -131,6 +177,16 @@ public class HighlightService implements Listener {
             return false;
         }
 
+        Team yellowTeam = getOrCreateYellowTeam();
+
+        // Remove glowing outline entities
+        for (Entity entity : session.glowingEntities()) {
+            if (entity != null && entity.isValid()) {
+                yellowTeam.removeEntity(entity);
+                entity.remove();
+            }
+        }
+
         // Restore original block states to the admin client
         for (Location loc : session.highlightedLocations()) {
             if (loc.isWorldLoaded()) {
@@ -138,8 +194,14 @@ public class HighlightService implements Listener {
             }
         }
 
-        if (config.isSpectatorOnTeleport() && admin.getGameMode() == GameMode.SPECTATOR) {
-            admin.setGameMode(session.previousGameMode() != null ? session.previousGameMode() : GameMode.SURVIVAL);
+        // Teleport admin back to the location from which they entered inspection
+        if (session.previousLocation() != null) {
+            admin.teleportAsync(session.previousLocation());
+        }
+
+        // Restore previous gamemode (exit spectator mode)
+        if (session.previousGameMode() != null) {
+            admin.setGameMode(session.previousGameMode());
         }
 
         if (notify) {
@@ -158,10 +220,21 @@ public class HighlightService implements Listener {
     }
 
     public void clearAll() {
+        Team yellowTeam = getOrCreateYellowTeam();
         for (UUID uuid : new ArrayList<>(activeSessions.keySet())) {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null && player.isOnline()) {
                 clearHighlight(player, false);
+            } else {
+                InspectionSession session = activeSessions.remove(uuid);
+                if (session != null) {
+                    for (Entity entity : session.glowingEntities()) {
+                        if (entity != null && entity.isValid()) {
+                            yellowTeam.removeEntity(entity);
+                            entity.remove();
+                        }
+                    }
+                }
             }
         }
         activeSessions.clear();
@@ -169,14 +242,27 @@ public class HighlightService implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        activeSessions.remove(event.getPlayer().getUniqueId());
+        Player player = event.getPlayer();
+        InspectionSession session = activeSessions.remove(player.getUniqueId());
+        if (session != null) {
+            Team yellowTeam = getOrCreateYellowTeam();
+            for (Entity entity : session.glowingEntities()) {
+                if (entity != null && entity.isValid()) {
+                    yellowTeam.removeEntity(entity);
+                    entity.remove();
+                }
+            }
+            // Restore gamemode before quit
+            if (session.previousGameMode() != null) {
+                player.setGameMode(session.previousGameMode());
+            }
+        }
     }
 
     @EventHandler
     public void onWorldChange(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
-        InspectionSession session = activeSessions.get(player.getUniqueId());
-        if (session != null) {
+        if (activeSessions.containsKey(player.getUniqueId())) {
             clearHighlight(player, true);
         }
     }

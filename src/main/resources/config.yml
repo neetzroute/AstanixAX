@@ -50,7 +50,7 @@ messages:
   no-permission: "<red>У вас нет прав для выполнения этой команды!</red>"
   teleported-to-cluster: "<green>Телепортация к кладке <white>#{id}</white> игрока <yellow>{player}</yellow>. Блоки подсвечены золотом!</green>"
   teleport-hint: "<gray>Для сброса подсветки введите <click:run_command:'/ax clear'><yellow><u>/ax clear</u></yellow></click> или нажмите кнопку в GUI.</gray>"
-  highlight-cleared: "<gray>Подсветка блоков успешно снята, оригинальный вид восстановлен.</gray>"
+  highlight-cleared: "<gray>Подсветка блоков снята, вы успешно возвращены на исходную позицию.</gray>"
   cluster-clean-marked: "<green>Кладка <white>#{id}</white> помечена как <bold>ЧИСТАЯ</bold> ✔</green>"
   cluster-unclean-marked: "<yellow>С кладки <white>#{id}</white> снята отметка чистоты ⚠</yellow>"
   player-not-found: "<red>Игрок не найден или не имеет записей о добыче.</red>"
